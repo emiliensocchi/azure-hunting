@@ -329,7 +329,7 @@ curl -s https://<IP_ADDRESS_OR_DOMAIN>?t="$(az account get-access-token --only-s
 
 
 <a id='vms'></a>
-## Virtual Machines - NOT FINISHED
+## Virtual Machines
 
 ### Abuse Contributor access to a VM
 
