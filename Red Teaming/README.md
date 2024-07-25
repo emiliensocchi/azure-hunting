@@ -277,7 +277,7 @@ Invoke-AzRestMethod https://graph.microsoft.com/v1.0/roleManagement/directory/ro
 
 
 <a id='mis'></a>
-## Managed Identities
+## Managed Identities - NOT FINISHED
 
 *Notes*:
 - If a system-managed identity is enabled on the resource, acquiring a token for any Microsoft resource is always possible, but this does *not* mean we have access to a scope in those resources
@@ -296,6 +296,121 @@ $resource_graph = 'https://graph.microsoft.com'
 $resource_vault = 'https://vault.azure.net'
 $resource_sql = 'https://database.windows.net/'
 $resource_storage = 'https://storage.azure.com'
+
+$resource = $resource_arm
+
+$response = Invoke-WebRequest -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=${resource}" -Headers @{Metadata="true"}
+$content = $response.Content | ConvertFrom-Json
+$token = $content.access_token
+echo $token
+```
+
+### Collect access tokens for common resources and generate enumerating script
+
+*Note*: the generated script can be run anywhere
+
+```shell
+CREATE TESTS FOR REMAINING RESOURCES
+
+$resource_dataLake = 'https://datalake.azure.net'
+$resource_eventGrid = 'https://eventgrid.azure.net'
+$resource_graph = 'https://graph.microsoft.com'
+$resource_vault = 'https://vault.azure.net'
+$resource_sql = 'https://database.windows.net/'
+
+
+# install az ps
+# for each 
+# Get token
+# print commands
+
+
+$imdsEndpoint = 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01'
+
+# ARM
+$resource = 'https://management.azure.com/'
+$response = Invoke-WebRequest -Uri "${imdsEndpoint}&resource=${resource}" -Headers @{Metadata="true"}
+$content = $response.Content | ConvertFrom-Json
+$token = $content.access_token
+Write-Output "# ARM
+Clear-AzContext -Force
+Connect-AzAccount -AccessToken $token -AccountId current
+$subscriptions = (Get-AzSubscription).Id
+$azureRoles = New-Object System.Collections.Generic.List[System.Object]
+foreach ($subscription in $subscriptions) { 
+    Set-AzContext -Subscription $subscription
+    $azureRole = (Get-AzRoleAssignment).RoleDefinitionName
+    if ($azureRole) {
+        $azureRoles.Add($azureRole)
+    }
+}
+Write-Output 'The MI has access to ARM'
+Write-Output 'Identified Azure roles are:'
+Write-Output $azureRoles
+"
+
+# Storage
+$resource = 'https://storage.azure.com'
+$response = Invoke-WebRequest -Uri "${imdsEndpoint}&resource=${resource}" -Headers @{Metadata="true"}
+$content = $response.Content | ConvertFrom-Json
+$token = $content.access_token
+Write-Output "# Storage 
+Clear-AzContext -Force
+Connect-AzAccount -AccessToken $token -AccountId current
+$subscriptions = (Get-AzSubscription).Id
+$storageAccounts
+foreach ($subscription in $subscriptions) { 
+    Set-AzContext -Subscription $subscription
+    $storageAccounts = (Get-AzStorageAccount).StorageAccountName
+    if ($storageAccounts) {
+        Write-Output 'The MI has access to Storage Accounts'
+        break
+    }
+}
+
+Get-AzStorageAccount"
+
+
+
+$commonResources = @(
+    @{
+        resourceUri = $resource_arm
+        testUris = @('https://management.azure.com/subscriptions?api-version=2022-12-01')
+        testHeaders = @{'Content-Type' = 'application/json'; 'Authorization' = $token}
+    }
+    @{
+        resourceUri = $resource_storage
+        testUri = @('https://management.azure.com/subscriptions?api-version=2022-12-01', 'https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Storage/storageAccounts?api-version=2023-01-01')
+        testHeaders = @{'Content-Type' = 'application/json'; 'Authorization' = $token}
+    }
+
+)
+
+foreach ($resource in $commonResources) {
+    $response = Invoke-WebRequest -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=${resource}" -Headers @{Metadata="true"}
+    $content = $response.Content | ConvertFrom-Json
+    $token = $content.access_token
+
+    Write-Output "Clear-AzContext -Force"
+    Write-Output "Connect-AzAccount -AccessToken $token"
+    Write-Output ""
+    Write-Output ""
+    
+    $response = Invoke-WebRequest -Uri $resource['testUris'] -Headers $resource['testHeaders']
+    $content = $response.Content | ConvertFrom-Json
+    $token = $content.access_token
+
+    $response = Invoke-WebRequest -Uri $resource['test'] -Headers $resource['testHeaders']
+    $content = $response.Content | ConvertFrom-Json
+    $token = $content.access_token
+
+
+    
+    Write-Output "$uuid"
+}
+
+
+
 
 $resource = $resource_arm
 
