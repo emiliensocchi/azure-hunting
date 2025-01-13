@@ -102,7 +102,7 @@ $PasswordProfile = @{
     Password = ''
 }
 
-Update-MgUser -UPNOrObjectId $upn -PasswordProfile $PasswordProfile –Verbose
+Update-MgUser -UserId $upn -PasswordProfile $PasswordProfile –Verbose
 ```
 
 ### Identify the Object ID of a targeted user
