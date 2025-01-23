@@ -48,9 +48,7 @@ Connect-MgGraph -AccessToken $secureToken
 
 #### Retrieve the access token after successful authentication
 ```shell
-$InMemoryTokenCacheGetTokenData = [Microsoft.Graph.PowerShell.Authentication.Core.TokenCache.InMemoryTokenCache].GetMethod("ReadTokenData",[System.Reflection.BindingFlags]::NonPublic+[System.Reflection.BindingFlags]::Instance)
-$TokenData = $InMemoryTokenCacheGetTokenData.Invoke([Microsoft.Graph.PowerShell.Authentication.GraphSession]::Instance.InMemoryTokenCache,$null)
-[System.Text.Encoding]::UTF8.GetString($TokenData)  -match '"secret":"([^"]+)"' | Out-Null ; $matches[1]
+$InMemoryTokenCacheGetTokenData = [Microsoft.Graph.PowerShell.Authentication.Core.TokenCache.InMemoryTokenCache].GetMethod("ReadTokenData",[System.Reflection.BindingFlags]::NonPublic+[System.Reflection.BindingFlags]::Instance) ; $TokenData = $InMemoryTokenCacheGetTokenData.Invoke([Microsoft.Graph.PowerShell.Authentication.GraphSession]::Instance.InMemoryTokenCache,$null) ; [System.Text.Encoding]::UTF8.GetString($TokenData) -match '"secret":"([^"]+)"' | Out-Null ; $matches[1]
 ```
 
 ### Az PowerShell
