@@ -86,7 +86,7 @@ $servicePrincipalId = '_OBJECT-ID-OF-YOUR_MULTI_TENANT-SP_'
 # Connect-MgGraph -Scopes "Application.ReadWrite.All", "Directory.Read.All" -ErrorAction Stop 
 
 # Pass-the-token authentication
-$msgraphToken  = ''
+$msgraphToken  = '_VALID-ACCESS-TOKEN-FOR_MS-GRAPH_'
 $secureToken = ConvertTo-SecureString -String $msgraphToken -AsPlainText -Force 
 Connect-MgGraph -NoWelcome -AccessToken $secureToken -ErrorAction Stop 
 
