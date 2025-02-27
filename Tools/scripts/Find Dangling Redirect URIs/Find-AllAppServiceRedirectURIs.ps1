@@ -17,7 +17,7 @@ $tenantId = (Get-MgOrganization).Id
 
 # Set output file location
 $path = "C:\Users\$env:UserName\Downloads\"
-$file = "_dangling-redirectURIs.txt" 
+$file = "_appservice-redirectURIs.txt" 
 $date = (Get-Date -UFormat "%Y-%m-%d")
 $resultFile = "${path}${date}${file}"
 
@@ -26,7 +26,6 @@ $apps = Get-MgApplication -All
 
 # Filter applications with reply URLs containing "azurewebsites.net"
 $urls = $apps | Where-Object { $_.Web.RedirectUris -match "azurewebsites.net" } | Select-Object -ExpandProperty Web | Select-Object -ExpandProperty RedirectUris | Where-Object { $_ -match "azurewebsites.net" }
-
 $domains = @()
 foreach ($domain in $urls) {
     if ($domain -match "http://") {
