@@ -1,6 +1,6 @@
 #### Description ##############################################################################################################################
 #
-# Indexes all applications enabled for SSO via Entra ID, and displays whether they require app role assignments.
+# Indexes all applications in a tenant enabled for SSO via Entra ID, and displays whether they require app role assignments.
 #
 # Requirements:
 #    An access token with the following MS Graph permissions (as application or delegated permissions):
