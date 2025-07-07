@@ -1,6 +1,0 @@
-azure.identity
-datetime
-prettytable
-progress
-pyfiglet
-requests

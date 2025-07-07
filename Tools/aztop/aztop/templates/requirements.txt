@@ -1,3 +1,0 @@
-package_name
-package_name==version
-package_name>=min-version,<max-version
