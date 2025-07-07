@@ -76,10 +76,13 @@ In those situations, using the BloodHound CE client may help. The high-level ins
 ## Custom queries
 
 Replace the content of the following file with [customqueries.json](https://github.com/emiliensocchi/azure-hunting/blob/main/Tools/azurehound/customqueries.json):
+
+Windows :
 ```code
 C:\Users\%USERNAME%\AppData\Roaming\bloodhound\customqueries.json
 ```
-In Linux 
+
+Linux :
 ```code
 curl -o ~/.config/bloodhound/customqueries.json "https://raw.githubusercontent.com/emiliensocchi/azure-hunting/main/Tools/azurehound/customqueries.json"
 ```
