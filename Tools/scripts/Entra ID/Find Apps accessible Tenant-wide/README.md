@@ -5,16 +5,16 @@ Tool to find all applications enabled for Single Sign-On (SSO) via Entra ID, and
 ## Requirements
 
 - Powershell 7+
-- [Microsoft Graph PowerShell](https://learn.microsoft.com/en-us/powershell/microsoftgraph/installation?view=graph-powershell-1.0)
+- [Microsoft Graph PowerShell Beta](https://learn.microsoft.com/en-us/powershell/microsoftgraph/installation?view=graph-powershell-beta)
 - An access token with the following MS Graph permissions (as application or delegated permissions):
   - Application.Read.All
 
 
 ## Instructions
 
-### 1. Install and Import the Microsoft Graph PowerShell module
+### 1. Install and Import the Microsoft Graph Beta PowerShell module
 ```shell
-Install-Module Microsoft.Graph -Scope CurrentUser -Repository PSGallery -Force
+Install-Module Microsoft.Graph.Beta -Scope CurrentUser -Repository PSGallery -Force
 ```
 
 ### 2. Set the value of the following variables in the script
