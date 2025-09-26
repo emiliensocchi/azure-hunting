@@ -27,20 +27,13 @@ $file = "_sso-enabled-apps.csv"
 $date = (Get-Date -UFormat "%Y-%m-%d")
 $resultFile = "${path}${date}${file}"
 
-
-# Get Service Principals that are configured with SSO
-$servicePrincipals = Get-MgBetaServicePrincipal -All
-
-$ssoEnabledApps = $servicePrincipals | Where-Object {
-    -not ([string]::IsNullOrEmpty($_.PreferredSingleSignOnMode))
-}
-
 # Helper function to get assigned users and groups for a service principal using the Beta API
 function Get-AssignedPrincipals {
     param($spId)
     $assignments = Get-MgBetaServicePrincipalAppRoleAssignedTo -ServicePrincipalId $spId -All
     if (-not $assignments) { return "" }
 
+    Write-Host "Found $($assignments.Count) assignments for Service Principal ID: $spId"
     $lines = @()
     foreach ($assignment in $assignments) {
         $principalId = $assignment.PrincipalId
@@ -51,9 +44,42 @@ function Get-AssignedPrincipals {
     return ($lines -join "`n")
 }
 
-# Export results with assigned users/groups
-$ssoEnabledApps | Select-Object DisplayName, AppId, PreferredSingleSignOnMode, AppRoleAssignmentRequired, 
+# Helper function to get reply URIs (redirect URIs) for a service principal
+function Get-ReplyUris {
+    param($sp)
+    if ($sp.ReplyUrls -and $sp.ReplyUrls.Count -gt 0) {
+        return ($sp.ReplyUrls -join "`n")
+    } elseif ($sp.Web -and $sp.Web.RedirectUris -and $sp.Web.RedirectUris.Count -gt 0) {
+        return ($sp.Web.RedirectUris -join "`n")
+    } else {
+        return ""
+    }
+}
+
+# Get all Service Principals using manual paging
+$servicePrincipals = @()
+$page = Get-MgBetaServicePrincipal -Top 999
+while ($page) {
+    $servicePrincipals += $page
+    $nextLink = $page.'@odata.nextLink'
+    if ($nextLink) {
+        $page = Invoke-MgGraphRequest -Uri $nextLink
+        # Convert result to the same type as Get-MgBetaServicePrincipal output
+        if ($page.value) { $page = $page.value } else { $page = @() }
+    } else {
+        $page = $null
+    }
+}
+
+# Exclude Service Principals published by Microsoft
+$filteredServicePrincipals = $servicePrincipals | Where-Object {
+    -not ($_.Publisher -match '.*Microsoft.*')
+}
+
+# Export results with assigned users/groups and reply URIs
+$filteredServicePrincipals | Select-Object DisplayName, AppId, PreferredSingleSignOnMode, AppRoleAssignmentRequired, 
     @{Name="AssignedUsersAndGroups";Expression={ Get-AssignedPrincipals $_.Id }},
+    @{Name="ReplyUris";Expression={ Get-ReplyUris $_ }},
     @{Name="MyAppsUri (SSO)";Expression={"https://launcher.myapps.microsoft.com/api/signin/$($_.AppId)?tenantId=$tenantId"}} |
 Export-Csv -Path $resultFile -NoTypeInformation
 
