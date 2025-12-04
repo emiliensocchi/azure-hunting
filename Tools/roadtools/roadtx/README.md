@@ -85,7 +85,7 @@ roadtx prtauth -c azcli -r azrm
 
 ### 🍪 PRT cookie
 
-On the compromised device, extract the PRT cookie using [request_prt_cookie_browsercore.py](https://github.com/emiliensocchi/azure-hunting/blob/main/Tools/roadtools/roadtx/request_prt_cookie/request_prt_cookie_browsercore.py) or [request_prt_cookie_com.py](https://github.com/emiliensocchi/azure-hunting/blob/main/Tools/roadtools/roadtx/request_prt_cookie/request_prt_cookie_com.py) (the latter bypasses EDR as of 2025-12-04), and extract the value of the `x-ms-DeviceCredential` parameter:
+On the compromised device, extract the PRT cookie using [request_prt_cookie_browsercore.py](https://github.com/emiliensocchi/azure-hunting/tree/main/Tools/roadtools/roadtx/request_prt_cookie/browsercore) or [request_prt_cookie_com.py](https://github.com/emiliensocchi/azure-hunting/tree/main/Tools/roadtools/roadtx/request_prt_cookie/com) (the latter bypasses EDR as of 2025-12-04), and extract the value of the `x-ms-DeviceCredential` parameter:
 ```
 python .\request_prt_cookie_browsercore.py
 ```
