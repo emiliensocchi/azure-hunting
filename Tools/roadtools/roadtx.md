@@ -128,6 +128,7 @@ Connect-MgGraph -AccessToken $secureToken
 
 ### Import a stolen access token to the Az PowerShell module
 ```
+# audience: "https://management.core.windows.net/"
 $armToken = '<token>'
 Connect-AzAccount -AccessToken $armToken -AccountId current
 ```
